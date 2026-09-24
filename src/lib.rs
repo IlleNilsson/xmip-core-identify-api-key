@@ -37,9 +37,9 @@
 
 pub mod query;
 
+use identify::evidence;
 use identify::{IdentifyError, Presented, StreamArrival, TransportIdentifier};
 use sha2::{Digest, Sha256};
-use std::fmt::Write;
 use xcore::{Arriving, Mechanism};
 
 /// The prefix the transport puts a request header on the arrival under.
@@ -49,12 +49,6 @@ pub const HEADER_PREFIX: &str = "http.header.";
 pub const QUERY_PREFIX: &str = "http.query.";
 /// The header read where none is named.
 pub const DEFAULT_HEADER: &str = "x-api-key";
-/// The proof name the key itself rides under, read by `authenticate/api-key`.
-pub const KEY_PROOF: &str = "api-key";
-/// The evidence name saying where the key was found.
-pub const SOURCE: &str = "api-key.source";
-/// What a value that is a digest of the key starts with.
-pub const DIGEST_PREFIX: &str = "sha256:";
 
 /// Where the key is looked for.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -142,15 +136,12 @@ impl Default for ApiKey {
     }
 }
 
-/// `sha256:` and the first eight bytes of the key's SHA-256, in hexadecimal.
+/// The name a key with no id goes by: the capability's
+/// `identify::api_key::digest_name` of its SHA-256, which the second gate
+/// finds the stored key by.
 #[must_use]
 pub fn digest(key: &str) -> String {
-    let hash = Sha256::digest(key.as_bytes());
-    let mut text = String::from(DIGEST_PREFIX);
-    for byte in &hash[..8] {
-        write!(text, "{byte:02x}").expect("writing to a String does not fail");
-    }
-    text
+    identify::api_key::digest_name(&Sha256::digest(key.as_bytes()))
 }
 
 impl TransportIdentifier for ApiKey {
@@ -182,8 +173,8 @@ impl TransportIdentifier for ApiKey {
 
         Ok(Some(
             Presented::passed(self.mechanism(), self.name_of(&key))
-                .with_evidence(SOURCE, self.source())
-                .with_proof(KEY_PROOF, key),
+                .with_evidence(evidence::API_KEY_SOURCE, self.source())
+                .with_proof(evidence::API_KEY, key),
         ))
     }
 }
@@ -222,11 +213,17 @@ mod tests {
         assert_eq!(claim.established, Established::Passed);
         assert_eq!(claim.layer(), Layer::Transport);
         assert_eq!(claim.value, digest(KEY));
-        assert_eq!(claim.value.len(), DIGEST_PREFIX.len() + 16);
-        assert_eq!(claim.proof(KEY_PROOF), Some(KEY));
+        assert_eq!(
+            claim.value.len(),
+            identify::api_key::DIGEST_PREFIX.len() + 16
+        );
+        assert_eq!(claim.proof(evidence::API_KEY), Some(KEY));
         assert_eq!(
             claim.evidence,
-            vec![(SOURCE.to_string(), "header:x-api-key".to_string())]
+            vec![(
+                evidence::API_KEY_SOURCE.to_string(),
+                "header:x-api-key".to_string()
+            )]
         );
     }
 
@@ -265,7 +262,7 @@ mod tests {
             .expect("a claim");
 
         assert_eq!(claim.value, "pk_7f3a");
-        assert_eq!(claim.proof(KEY_PROOF), Some("pk_7f3a.c2VjcmV0"));
+        assert_eq!(claim.proof(evidence::API_KEY), Some("pk_7f3a.c2VjcmV0"));
     }
 
     #[test]
@@ -279,10 +276,13 @@ mod tests {
             .expect("read")
             .expect("a claim");
 
-        assert_eq!(claim.proof(KEY_PROOF), Some("from-uri"));
+        assert_eq!(claim.proof(evidence::API_KEY), Some("from-uri"));
         assert_eq!(
             claim.evidence,
-            vec![(SOURCE.to_string(), "query:api_key".to_string())]
+            vec![(
+                evidence::API_KEY_SOURCE.to_string(),
+                "query:api_key".to_string()
+            )]
         );
 
         let facts = facts(&[("http.query.api_key", "promoted")]);
@@ -292,7 +292,7 @@ mod tests {
             .expect("read")
             .expect("a claim");
 
-        assert_eq!(claim.proof(KEY_PROOF), Some("promoted"));
+        assert_eq!(claim.proof(evidence::API_KEY), Some("promoted"));
     }
 
     #[test]
