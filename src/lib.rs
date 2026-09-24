@@ -37,16 +37,12 @@
 
 pub mod query;
 
+use context::property::{HTTP_HEADER_PREFIX, HTTP_QUERY_PREFIX};
 use identify::evidence;
 use identify::{IdentifyError, Presented, StreamArrival, TransportIdentifier};
 use sha2::{Digest, Sha256};
 use xcore::{Arriving, Mechanism};
 
-/// The prefix the transport puts a request header on the arrival under.
-pub const HEADER_PREFIX: &str = "http.header.";
-/// The prefix the transport puts a decoded query parameter under, where it
-/// promotes them.
-pub const QUERY_PREFIX: &str = "http.query.";
 /// The header read where none is named.
 pub const DEFAULT_HEADER: &str = "x-api-key";
 
@@ -107,9 +103,9 @@ impl ApiKey {
     fn key(&self, arrival: &StreamArrival<'_>) -> Result<Option<String>, IdentifyError> {
         match &self.place {
             Place::Header(name) => Ok(arrival
-                .property(&format!("{HEADER_PREFIX}{name}"))
+                .property(&format!("{HTTP_HEADER_PREFIX}{name}"))
                 .map(|value| value.trim().to_string())),
-            Place::Query(name) => match arrival.property(&format!("{QUERY_PREFIX}{name}")) {
+            Place::Query(name) => match arrival.property(&format!("{HTTP_QUERY_PREFIX}{name}")) {
                 Some(value) => Ok(Some(value.trim().to_string())),
                 None => query::parameter(arrival.source_uri(), name),
             },

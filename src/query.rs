@@ -31,30 +31,15 @@ pub fn parameter(uri: &str, name: &str) -> Result<Option<String>, IdentifyError>
         .transpose()
 }
 
-/// Percent-decode one value.
+/// Percent-decode one value, strictly: a key Xmip guessed at is not the key
+/// that was sent.
 fn decode(value: &str, name: &str) -> Result<String, IdentifyError> {
-    let mut bytes = Vec::with_capacity(value.len());
-    let mut rest = value.as_bytes();
-
-    while let Some((&first, tail)) = rest.split_first() {
-        if first == b'%' {
-            let byte = tail
-                .get(..2)
-                .and_then(|pair| core::str::from_utf8(pair).ok())
-                .and_then(|pair| u8::from_str_radix(pair, 16).ok())
-                .ok_or_else(|| {
-                    IdentifyError::new(format!(
-                        "the query parameter {name} holds a percent escape that is not two \
-                         hexadecimal digits"
-                    ))
-                })?;
-            bytes.push(byte);
-            rest = &tail[2..];
-        } else {
-            bytes.push(first);
-            rest = tail;
-        }
-    }
+    let bytes = net::percent::decode_strict(value.as_bytes()).map_err(|_| {
+        IdentifyError::new(format!(
+            "the query parameter {name} holds a percent escape that is not two \
+             hexadecimal digits"
+        ))
+    })?;
 
     String::from_utf8(bytes).map_err(|_| {
         IdentifyError::new(format!(
@@ -89,6 +74,10 @@ mod tests {
         let failure = parameter(uri, "api_key").expect_err("truncated escape");
 
         assert!(failure.message.contains("percent escape"), "{failure}");
+        assert!(
+            parameter("https://xmip.example/in?api_key=%+f", "api_key").is_err(),
+            "a sign is not a hex digit"
+        );
         assert_eq!(parameter(uri, "absent").expect("read"), None);
     }
 }
