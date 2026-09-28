@@ -23,7 +23,7 @@ context = { package = "xmip-core-context", git = "https://github.com/IlleNilsson
 xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
 # The key never reaches the record: where it has no id of its own the claim is
 # a SHA-256 prefix of it.
-sha2 = "0.10"
+sha2 = "0.11"
 # Percent-decoding a query parameter, strictly, as the estate reads it once.
 net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
 
