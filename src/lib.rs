@@ -329,8 +329,7 @@ mod tests {
     fn a_scheduled_pickup_carries_no_callers_key() {
         let stream = stream();
         let facts = facts(&[("http.header.x-api-key", KEY)]);
-        let arrival =
-            StreamArrival::new(&stream, Arriving::Scheduled, "https://partner/out", &facts);
+        let arrival = StreamArrival::new(&stream, Arriving::Scheduled, "https://party/out", &facts);
 
         assert!(
             ApiKey::default()
