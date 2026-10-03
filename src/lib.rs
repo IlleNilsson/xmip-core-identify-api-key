@@ -178,14 +178,10 @@ impl TransportIdentifier for ApiKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use stream::Stream;
-    use xcore::{Established, Layer, StreamId};
+
+    use xcore::{Established, Layer};
 
     const KEY: &str = "c2VjcmV0c2VjcmV0";
-
-    fn stream() -> Stream {
-        Stream::new(StreamId::new(1), b"<order/>".to_vec(), None)
-    }
 
     fn facts(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         pairs
@@ -196,9 +192,8 @@ mod tests {
 
     #[test]
     fn a_key_in_the_header_is_presented_by_its_digest_and_carried_whole_as_proof() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-api-key", KEY)]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let claim = ApiKey::default()
             .identify(&arrival)
@@ -225,9 +220,8 @@ mod tests {
 
     #[test]
     fn the_key_reaches_neither_the_value_nor_the_evidence_nor_a_log_line() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-api-key", KEY)]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let claim = ApiKey::header("X-API-Key")
             .identify(&arrival)
@@ -247,9 +241,8 @@ mod tests {
 
     #[test]
     fn a_key_with_an_id_in_front_is_presented_by_the_id() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-api-key", "pk_7f3a.c2VjcmV0")]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let claim = ApiKey::default()
             .with_id_separator('.')
@@ -263,9 +256,8 @@ mod tests {
 
     #[test]
     fn a_key_in_the_query_is_read_from_the_source_uri_and_a_promoted_one_wins() {
-        let stream = stream();
         let uri = "https://xmip/in?api_key=from%2Duri";
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, uri, &[]);
+        let arrival = StreamArrival::new(Arriving::Pushed, uri, &[]);
 
         let claim = ApiKey::query("api_key")
             .identify(&arrival)
@@ -282,7 +274,7 @@ mod tests {
         );
 
         let facts = facts(&[("http.query.api_key", "promoted")]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, uri, &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, uri, &facts);
         let claim = ApiKey::query("api_key")
             .identify(&arrival)
             .expect("read")
@@ -293,9 +285,8 @@ mod tests {
 
     #[test]
     fn an_arrival_without_a_key_presents_nothing() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-other", "value")]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in?a=b", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in?a=b", &facts);
 
         assert!(
             ApiKey::default()
@@ -313,9 +304,8 @@ mod tests {
 
     #[test]
     fn a_key_that_is_present_and_empty_is_an_error_and_not_an_absence() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-api-key", "  ")]);
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let failure = ApiKey::default().identify(&arrival).expect_err("empty");
 
@@ -327,9 +317,8 @@ mod tests {
 
     #[test]
     fn a_scheduled_pickup_carries_no_callers_key() {
-        let stream = stream();
         let facts = facts(&[("http.header.x-api-key", KEY)]);
-        let arrival = StreamArrival::new(&stream, Arriving::Scheduled, "https://party/out", &facts);
+        let arrival = StreamArrival::new(Arriving::Scheduled, "https://party/out", &facts);
 
         assert!(
             ApiKey::default()
