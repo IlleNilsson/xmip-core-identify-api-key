@@ -25,7 +25,7 @@ xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core
 # a SHA-256 prefix of it.
 sha2 = "0.11"
 # Percent-decoding a query parameter, strictly, as the estate reads it once.
-net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
+codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
 
 
 [lints.rust]
