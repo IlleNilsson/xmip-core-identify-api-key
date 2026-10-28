@@ -34,7 +34,7 @@ pub fn parameter(uri: &str, name: &str) -> Result<Option<String>, IdentifyError>
 /// Percent-decode one value, strictly: a key Xmip guessed at is not the key
 /// that was sent.
 fn decode(value: &str, name: &str) -> Result<String, IdentifyError> {
-    let bytes = net::percent::decode_strict(value.as_bytes()).map_err(|_| {
+    let bytes = codec::percent::decode_strict(value.as_bytes()).map_err(|_| {
         IdentifyError::new(format!(
             "the query parameter {name} holds a percent escape that is not two \
              hexadecimal digits"
