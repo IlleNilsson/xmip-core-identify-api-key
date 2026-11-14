@@ -40,7 +40,6 @@ pub mod query;
 use context::property::{self, HTTP_QUERY_PREFIX};
 use identify::evidence;
 use identify::{IdentifyError, Presented, StreamArrival, TransportIdentifier};
-use sha2::{Digest, Sha256};
 use xcore::{Arriving, Mechanism};
 
 /// The header read where none is named.
@@ -137,7 +136,7 @@ impl Default for ApiKey {
 /// finds the stored key by.
 #[must_use]
 pub fn digest(key: &str) -> String {
-    identify::api_key::digest_name(&Sha256::digest(key.as_bytes()))
+    identify::api_key::digest_name(&codec::digest::sha256(key.as_bytes()))
 }
 
 impl TransportIdentifier for ApiKey {
